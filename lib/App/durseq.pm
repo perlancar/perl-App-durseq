@@ -9,7 +9,7 @@ use warnings;
 
 our %SPEC;
 
-$SPEC{dateseq} = {
+$SPEC{durseq} = {
     v => 1.1,
     summary => 'Generate a sequence of durations',
     description => <<'_',
@@ -175,6 +175,7 @@ sub durseq {
                 my $dtdur = $func0->();
                 return undef unless defined $dtdur;
                 #last if $code_filter->($dt);
+                last;
             }
             $fmt_iso->format_duration($dtdur);
         };
