@@ -61,8 +61,29 @@ _
             schema => ['int*', min=>1],
             cmdline_aliases => {n=>{}},
         },
-        # XXX format_module
-        # XXX format_args
+
+        format_class => {
+            summary => 'Use a DateTime::Format::Duration::* class for formatting',
+            schema => ['perl::modname'],
+            default => 'ISO8601',
+            tags => ['category:formatting'],
+            completion => sub {
+                require Complete::Module;
+                my %args = @_;
+                Complete::Module::complete_module(
+                    word => $args{word}, ns_prefix => 'DateTime::Format::Duration');
+            },
+            description => <<'_',
+
+By default, "ISO8601" (<pm:DateTime::Format::Duration::ISO8601>) is used.
+
+_
+        },
+        format_class_attrs => {
+            summary => 'Arguments to pass to constructor of DateTime::Format::* class',
+            schema => ['hash'],
+            tags => ['category:formatting'],
+        },
     },
     examples => [
         {
@@ -123,23 +144,12 @@ sub durseq {
     $args{increment} //= DateTime::Duration->new(days=>1);
     my $reverse = $args{reverse};
 
-    #my $fmt  = $args{date_format} // do {
-    #    my $has_hms;
-    #    {
-    #        if ($args{from}->hour || $args{from}->minute || $args{from}->second) {
-    #            $has_hms++; last;
-    #        }
-    #        if (defined($args{to}) &&
-    #                ($args{to}->hour || $args{to}->minute || $args{to}->second)) {
-    #            $has_hms++; last;
-    #        }
-    #        if ($args{increment}->hours || $args{increment}->minutes || $args{increment}->seconds) {
-    #            $has_hms++; last;
-    #        }
-    #    }
-    #    $has_hms ? '%Y-%m-%dT%H:%M:%S' : '%Y-%m-%d';
-    #};
-    my $fmt_iso = DateTime::Format::Duration::ISO8601->new();
+    my $cl = $args{format_class} // "ISO8601";
+    $cl = "DateTime::Format::Duration::$cl";
+    (my $cl_pm = "$cl.pm") =~ s!::!/!g;
+    require $cl_pm;
+    my $attrs = $args{format_class_attrs} // {};
+    my $formatter = $cl->new(%$attrs);
 
     if (defined $args{to} || defined $args{limit}) {
         my @res;
@@ -150,7 +160,7 @@ sub durseq {
                 last if !$reverse && DateTime::Duration->compare($dtdur, $args{to}, $base_dt) > 0;
                 last if  $reverse && DateTime::Duration->compare($dtdur, $args{to}, $base_dt) < 0;
             }
-            push @res, $fmt_iso->format_duration($dtdur);
+            push @res, $formatter->format_duration($dtdur);
             last if defined($args{limit}) && @res >= $args{limit};
             $dtdur = $reverse ? $dtdur - $args{increment} : $dtdur + $args{increment};
         }
@@ -177,7 +187,7 @@ sub durseq {
                 #last if $code_filter->($dt);
                 last;
             }
-            $fmt_iso->format_duration($dtdur);
+            $formatter->format_duration($dtdur);
         };
         return [200, "OK", $func, {schema=>'str*', stream=>1}];
     }
