@@ -16,8 +16,8 @@ $SPEC{durseq} = {
     summary => 'Generate a sequence of durations',
     description => <<'_',
 
-This utility is similar to Unix <prog:seq> command or Perl script
-<prog:dateseq>, except that it generates a sequence of dates.
+This utility is similar to Perl script <prog:dateseq>, except that it generates
+a sequence of durations instead of dates.
 
 _
     args_rels => {
